@@ -70,6 +70,9 @@ chain_of_thought_skips = [
     ],
 ]
 
+# Whether to filter bad_prompts to the prompts that were actually refused.
+filter_to_refusals = false
+
 # Whether to print prompt/response pairs when counting refusals.
 print_responses = false
 

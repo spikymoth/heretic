@@ -255,6 +255,14 @@ class Settings(BaseSettings):
         exclude=True,
     )
 
+    filter_to_refusals: bool = Field(
+        default=False,
+        description=(
+            "Whether to filter bad_prompts to the prompts that were actually refused."
+            "This increases startup time as full responses must be generated."
+        ),
+    )
+
     print_responses: bool = Field(
         default=False,
         description="Whether to print prompt/response pairs when counting refusals.",

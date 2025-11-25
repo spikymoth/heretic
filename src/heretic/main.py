@@ -535,7 +535,8 @@ def run():
     print()
     print("Calculating per-layer refusal directions...")
 
-    needs_full_residuals = settings.print_residual_geometry or settings.plot_residuals
+    needs_analyzer = settings.print_residual_geometry or settings.plot_residuals
+    needs_full_residuals = needs_analyzer or settings.filter_to_refusals
 
     if needs_full_residuals:
         print("* Obtaining residuals for good prompts...")
@@ -543,19 +544,36 @@ def run():
         print("* Obtaining residuals for bad prompts...")
         bad_residuals = model.get_residuals_batched(bad_prompts)
 
+        if settings.filter_to_refusals:
+            print("* Counting bad prompt refusals...")
+            bad_responses = model.get_responses_batched(bad_prompts)
+            refused_indices = [
+                index
+                for index, response in enumerate(bad_responses)
+                if evaluator.is_refusal(response)
+            ]
+            print(
+                f"* [bold]{len(refused_indices)}/{bad_residuals.size(0)}[/] bad prompts refused"
+            )
+            bad_residuals = bad_residuals[refused_indices]
+            del bad_responses, refused_indices
+
         good_means = good_residuals.mean(dim=0)
         bad_means = bad_residuals.mean(dim=0)
 
-        analyzer = Analyzer(settings, model, good_residuals, bad_residuals)
+        if needs_analyzer:
+            analyzer = Analyzer(settings, model, good_residuals, bad_residuals)
 
-        if settings.print_residual_geometry:
-            analyzer.print_residual_geometry()
+            if settings.print_residual_geometry:
+                analyzer.print_residual_geometry()
 
-        if settings.plot_residuals:
-            analyzer.plot_residuals()
+            if settings.plot_residuals:
+                analyzer.plot_residuals()
+
+            del analyzer
 
         # We don't need the full residuals after computing their means and analyzing geometry.
-        del good_residuals, bad_residuals, analyzer
+        del good_residuals, bad_residuals
     else:
         print("* Obtaining residual mean for good prompts...")
         good_means = model.get_residuals_mean(good_prompts)
